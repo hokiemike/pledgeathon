@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Web;
 using System.Web.Mvc;
+using System.Web.Profile;
 using System.Web.Security;
 using PledgeAThon1.Models;
 
@@ -84,12 +85,32 @@ namespace PledgeAThon1.Controllers
             {
                 // Attempt to register the user
                 MembershipCreateStatus createStatus;
-                Membership.CreateUser(model.UserName, model.Password, model.Email, passwordQuestion: null, passwordAnswer: null, isApproved: true, providerUserKey: null, status: out createStatus);
+                Membership.CreateUser(model.UserName, model.Password, model.Email, 
+                    passwordQuestion: null, passwordAnswer: null, 
+                    isApproved: true, providerUserKey: null, status: out createStatus);
 
                 if (createStatus == MembershipCreateStatus.Success)
                 {
                     FormsAuthentication.SetAuthCookie(model.UserName, createPersistentCookie: false);
-                    return RedirectToAction("Index", "Home");
+
+                    //Save Profile attributes - Attempt to register the user profile
+                    System.Web.Profile.ProfileBase profile = System.Web.Profile.ProfileBase.Create(model.UserName, true);
+
+                    if (profile != null)
+                    {
+                        profile.SetPropertyValue("FirstName", model.FirstName);
+                        profile.SetPropertyValue("LastName", model.LastName);
+                        profile.SetPropertyValue("TeacherName", model.TeacherName);
+                        profile.Save();
+
+                        return RedirectToAction("Index", "Home");
+
+                    }
+                    else
+                    {
+                        ModelState.AddModelError("", "Error writing to Profile");
+                    }
+
                 }
                 else
                 {
